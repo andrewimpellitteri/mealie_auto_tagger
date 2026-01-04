@@ -7,7 +7,7 @@ This script uses AI to analyze your recipe ingredients and instructions, then su
 
 ## Features
 
-- **AI-Powered Tagging**: Uses OpenAI's `gpt-4o-mini` for high-quality, singularized recipe tagging.
+- **AI-Powered Tagging**: Uses OpenAI's `gpt-5-nano` for high-quality, singularized recipe tagging.
 - **Robust API Integration**: Uses the verified "Full-Object Sync" pattern to avoid 400/422 validation errors common in the Mealie API.
 - **Local Caching**: Saves results to `.mealie_cache.json` to prevent redundant API calls and save you money.
 - **Progress Tracking**: Real-time progress bars for both recipe fetching and tagging.

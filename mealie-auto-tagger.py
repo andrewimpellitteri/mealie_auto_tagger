@@ -249,7 +249,7 @@ Recipe:
             while retries < max_retries:
                 try:
                     response = self.openai_client.chat.completions.create(
-                        model="gpt-4o-mini",
+                        model="gpt-5-nano",
                         messages=[
                             {"role": "system", "content": "You are a recipe categorizer. Return only JSON."},
                             {"role": "user", "content": prompt}
@@ -513,6 +513,7 @@ def main():
     print("Mealie Auto-Tagger")
     print("="*60)
     print(f"Mealie URL: {mealie_url}")
+    print(f"OpenAI Model: gpt-5-nano")
     print(f"Skip already tagged: {skip_tagged}")
     if limit:
         print(f"Limit: {limit} recipes")
