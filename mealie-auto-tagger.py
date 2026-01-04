@@ -37,6 +37,7 @@ class MealieAutoTagger:
         }
         self.cache_file = cache_file
         self.cache = self._load_cache()
+        self.organizer_cache = {'tags': None, 'categories': None}
 
     def _load_cache(self) -> Dict:
         """Load the local results cache."""
@@ -85,7 +86,10 @@ class MealieAutoTagger:
             return []
 
     def _get_organizer_items(self, item_type: str) -> List[Dict]:
-        """Fetch all items (tags or categories) with full metadata."""
+        """Fetch all items (tags or categories) with full metadata (cached in memory)."""
+        if self.organizer_cache.get(item_type) is not None:
+            return self.organizer_cache[item_type]
+
         try:
             response = requests.get(
                 f'{self.mealie_url}/api/organizers/{item_type}',
@@ -93,11 +97,14 @@ class MealieAutoTagger:
             )
             response.raise_for_status()
             data = response.json()
+            items = []
             if isinstance(data, list):
-                return data
+                items = data
             elif isinstance(data, dict) and 'items' in data:
-                return data['items']
-            return []
+                items = data['items']
+            
+            self.organizer_cache[item_type] = items
+            return items
         except Exception as e:
             print(f"Error fetching {item_type}: {e}")
             return []
@@ -127,9 +134,15 @@ class MealieAutoTagger:
                 json={'name': name}
             )
             response.raise_for_status()
-            return response.json()
+            new_item = response.json()
+            
+            # Update memory cache so subsequent calls don't need a re-fetch
+            if self.organizer_cache.get(item_type) is not None:
+                self.organizer_cache[item_type].append(new_item)
+                
+            return new_item
         except Exception as e:
-            print(f"Error creating {item_type[:-1]} '{name}': {e}")
+            print(f"Error creating {display_type} '{name}': {e}")
             return None
 
     def get_recipes(self, page: int = 1, per_page: int = 50) -> Dict:
