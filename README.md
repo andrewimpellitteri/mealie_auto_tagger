@@ -29,9 +29,20 @@ Create a `.env` file in the project root:
 MEALIE_URL=http://your-mealie-url:9000
 MEALIE_API_TOKEN=your_mealie_api_token_here
 OPENAI_API_KEY=your_openai_api_key_here
+
+# Optional: Use a custom LLM (e.g. Ollama)
+# OPENAI_BASE_URL=http://localhost:11434/v1
+# OPENAI_MODEL=llama3
 ```
 
-### 2. Run
+### 2. Local LLMs (Ollama)
+
+You can use local models via [Ollama](https://ollama.com/) or any OpenAI-compatible API:
+1. Set `OPENAI_BASE_URL` to your local endpoint (e.g. `http://localhost:11434/v1`).
+2. Set `OPENAI_MODEL` to your local model name (e.g. `llama3`).
+3. If your local API doesn't require a key, you can set `OPENAI_API_KEY=none`.
+
+### 3. Run
 With `uv` installed, you don't even need to clone or install dependencies manually:
 
 ```bash

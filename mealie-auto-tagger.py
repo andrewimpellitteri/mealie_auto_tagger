@@ -25,11 +25,12 @@ from dotenv import load_dotenv
 
 
 class MealieAutoTagger:
-    def __init__(self, mealie_url: str, mealie_token: str, openai_api_key: str, voting_rounds: int = 1, cache_file: str = ".mealie_cache.json"):
+    def __init__(self, mealie_url: str, mealie_token: str, openai_api_key: str, model: str = "gpt-5-nano", openai_base_url: Optional[str] = None, voting_rounds: int = 1, cache_file: str = ".mealie_cache.json"):
         """Initialize the auto-tagger with API credentials and local cache."""
         self.mealie_url = mealie_url.rstrip('/')
         self.mealie_token = mealie_token
-        self.openai_client = OpenAI(api_key=openai_api_key)
+        self.openai_client = OpenAI(api_key=openai_api_key, base_url=openai_base_url)
+        self.model = model
         self.voting_rounds = voting_rounds
         self.headers = {
             'Authorization': f'Bearer {self.mealie_token}',
@@ -262,7 +263,7 @@ Recipe:
             while retries < max_retries:
                 try:
                     response = self.openai_client.chat.completions.create(
-                        model="gpt-5-nano",
+                        model=self.model,
                         messages=[
                             {"role": "system", "content": "You are a recipe categorizer. Return only JSON."},
                             {"role": "user", "content": prompt}
@@ -488,6 +489,8 @@ def main():
     mealie_url = os.getenv('MEALIE_URL')
     mealie_token = os.getenv('MEALIE_API_TOKEN')
     openai_api_key = os.getenv('OPENAI_API_KEY')
+    openai_base_url = os.getenv('OPENAI_BASE_URL')
+    model = os.getenv('OPENAI_MODEL', 'gpt-5-nano')
 
     # Validate configuration
     if not mealie_url:
@@ -526,7 +529,9 @@ def main():
     print("Mealie Auto-Tagger")
     print("="*60)
     print(f"Mealie URL: {mealie_url}")
-    print(f"OpenAI Model: gpt-5-nano")
+    print(f"OpenAI Model: {model}")
+    if openai_base_url:
+        print(f"API Base URL: {openai_base_url}")
     print(f"Skip already tagged: {skip_tagged}")
     if limit:
         print(f"Limit: {limit} recipes")
@@ -534,7 +539,14 @@ def main():
     print()
 
     # Create tagger and process recipes
-    tagger = MealieAutoTagger(mealie_url, mealie_token, openai_api_key, voting_rounds=voting_rounds)
+    tagger = MealieAutoTagger(
+        mealie_url, 
+        mealie_token, 
+        openai_api_key, 
+        model=model, 
+        openai_base_url=openai_base_url,
+        voting_rounds=voting_rounds
+    )
     tagger.process_all_recipes(skip_tagged=skip_tagged, limit=limit)
 
 
