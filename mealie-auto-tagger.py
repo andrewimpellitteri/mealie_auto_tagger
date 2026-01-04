@@ -64,48 +64,49 @@ class MealieAutoTagger:
         return hashlib.sha256(recipe_text.encode('utf-8')).hexdigest()
 
     def get_existing_tags(self) -> List[str]:
-        """Fetch all existing tags from Mealie to provide as context to the LLM."""
-        try:
-            response = requests.get(
-                f'{self.mealie_url}/api/organizers/tags',
-                headers=self.headers
-            )
-            response.raise_for_status()
-            tags_data = response.json()
-            
-            # Extract tags from both list and paginated formats
-            if isinstance(tags_data, list):
-                tags = tags_data
-            elif isinstance(tags_data, dict) and 'items' in tags_data:
-                tags = tags_data['items']
-            else:
-                return []
-                
-            return [tag.get('name', tag.get('slug', '')) for tag in tags]
-        except Exception as e:
-            print(f"Warning: Could not fetch existing tags: {e}")
-            return []
+        """Fetch all existing tag names from Mealie."""
+        tags = self._get_organizer_items('tags')
+        return [tag.get('name', tag.get('slug', '')) for tag in tags]
 
     def _get_organizer_items(self, item_type: str) -> List[Dict]:
-        """Fetch all items (tags or categories) with full metadata (cached in memory)."""
+        """Fetch all items (tags or categories) with full metadata (cached in memory, handles pagination)."""
         if self.organizer_cache.get(item_type) is not None:
             return self.organizer_cache[item_type]
 
+        all_items = []
+        page = 1
+        per_page = 50
+
         try:
-            response = requests.get(
-                f'{self.mealie_url}/api/organizers/{item_type}',
-                headers=self.headers
-            )
-            response.raise_for_status()
-            data = response.json()
-            items = []
-            if isinstance(data, list):
-                items = data
-            elif isinstance(data, dict) and 'items' in data:
-                items = data['items']
+            while True:
+                response = requests.get(
+                    f'{self.mealie_url}/api/organizers/{item_type}',
+                    headers=self.headers,
+                    params={'page': page, 'perPage': per_page}
+                )
+                response.raise_for_status()
+                data = response.json()
+                
+                items = []
+                if isinstance(data, list):
+                    items = data
+                elif isinstance(data, dict) and 'items' in data:
+                    items = data['items']
+                
+                if not items:
+                    break
+                    
+                all_items.extend(items)
+                
+                # If we got fewer items than per_page, we've reached the end
+                if len(items) < per_page:
+                    break
+                
+                page += 1
+                time.sleep(0.1)  # Brief pause between pages
             
-            self.organizer_cache[item_type] = items
-            return items
+            self.organizer_cache[item_type] = all_items
+            return all_items
         except Exception as e:
             print(f"Error fetching {item_type}: {e}")
             return []
@@ -119,10 +120,12 @@ class MealieAutoTagger:
         # 1. Fetch existing items
         items = self._get_organizer_items(item_type)
         
-        # 2. Check if it already exists (case-insensitive)
+        # 2. Check if it already exists (case-insensitive and slug-aware)
         item_slug = self._slugify(name)
         for item in items:
-            if item.get('slug') == item_slug or item.get('name', '').lower() == name.lower():
+            existing_name = item.get('name', '').lower()
+            existing_slug = item.get('slug', '').lower()
+            if existing_slug == item_slug or existing_name == name.lower() or existing_slug == self._slugify(existing_name):
                 return item
         
         # 3. Create it if it doesn't exist
