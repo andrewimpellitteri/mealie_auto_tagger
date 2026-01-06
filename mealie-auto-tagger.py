@@ -125,7 +125,7 @@ class MealieAutoTagger:
         for item in items:
             existing_name = item.get('name', '').lower()
             existing_slug = item.get('slug', '').lower()
-            if existing_slug == item_slug or existing_name == name.lower() or existing_slug == self._slugify(existing_name):
+            if existing_slug == item_slug or existing_name == name.lower() or existing_slug == item_slug:
                 return item
         
         # 3. Create it if it doesn't exist
